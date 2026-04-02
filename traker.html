@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrixAlert — Suivi Factures Boulangerie</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #111111;
+    --bg-card: #1C1C1C;
+    --bg-header: #0A0A0A;
+    --text: #E8E0D0;
+    --text-muted: #777777;
+    --amber: #E8A83E;
+    --amber-light: #F0C060;
+    --red-alert: #E05555;
+    --red-bg: #2D1515;
+    --green: #4CAF80;
+    --green-bg: #152D1F;
+    --border: #2A2A2A;
+    --shadow: rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: #111111 !important;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #0A0A0A !important;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid #222;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    color: var(--amber-light);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: #999; font-weight: 400; }
+
+  .header-info {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #555;
+    text-align: right;
+  }
+
+  #alertBanner {
+    display: none;
+    background: #8B0000;
+    color: #FFD0D0;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    align-items: center;
+    gap: 10px;
+    animation: slideDown 0.4s ease;
+  }
+  #alertBanner.hidden { display: none !important; }
+
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 16px 100px 16px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 12px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    border: none;
+    background: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    min-height: 44px;
+  }
+
+  .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+  .tab:hover { color: #AAA; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--text);
+    margin-bottom: 18px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 160px;
+  }
+
+  label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #666;
+    font-family: 'DM Mono', monospace;
+  }
+
+  select, input[type="text"], input[type="email"], input[type="date"] {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    background: #222;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  select:focus, input:focus { border-color: var(--amber); }
+
+  .upload-zone {
+    border: 2px dashed #333;
+    border-radius: 12px;
+    padding: 44px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #161616;
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--amber);
+    background: #1E1800;
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    -webkit-appearance: none;
+  }
+
+  .upload-icon { font-size: 44px; margin-bottom: 10px; }
+  .upload-text { font-size: 15px; color: #CCC; font-weight: 500; margin-bottom: 6px; }
+  .upload-sub { font-size: 13px; color: #555; }
+
+  #imagePreview { display: none; margin-top: 16px; text-align: center; }
+  #imagePreview img { max-height: 200px; border-radius: 8px; border: 1px solid var(--border); }
+
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    min-height: 44px;
+    -webkit-appearance: none;
+  }
+
+  .btn-primary { background: var(--amber); color: #111; }
+  .btn-primary:hover { background: var(--amber-light); transform: translateY(-1px); }
+  .btn-primary:disabled { background: #444; color: #666; cursor: not-allowed; transform: none; }
+  .btn-outline { background: transparent; color: var(--amber); border: 1.5px solid var(--amber); }
+  .btn-outline:hover { background: #1E1800; }
+
+  #loadingState { display: none; text-align: center; padding: 40px; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #333;
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #extractedItems { display: none; margin-top: 20px; }
+
+  .items-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+  .items-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #555;
+    border-bottom: 1px solid var(--border);
+    background: #161616;
+  }
+
+  .items-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #222;
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  .items-table tr:last-child td { border-bottom: none; }
+  .items-table tr:hover td { background: #1E1E1E; }
+
+  .item-name { font-weight: 500; }
+  .price-cell { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--amber-light); }
+  .unit-cell { color: #555; font-size: 13px; }
+
+  .delta-up {
+    color: #FF8080;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--red-bg);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .delta-down {
+    color: #60CC90;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--green-bg);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .delta-same { color: #444; font-size: 13px; font-family: 'DM Mono', monospace; }
+
+  .new-badge {
+    background: #1A2D3D;
+    color: #6AB0D4;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .supplier-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+
+  .supplier-1 { background: #2D1A0A; color: #E8A060; }
+  .supplier-2 { background: #0A1A2D; color: #60A0E8; }
+
+  .history-entry {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+
+  .history-entry-header {
+    padding: 14px 20px;
+    background: #161616;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .history-entry-header:hover { background: #1E1E1E; }
+
+  .history-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .history-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .alert-count {
+    background: #8B0000;
+    color: #FFD0D0;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .history-body { display: none; }
+  .history-body.open { display: block; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    border-radius: 12px;
+    padding: 20px;
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card:nth-child(1) { background: linear-gradient(135deg, #1A4A8A, #2E6FC4); }
+  .stat-card:nth-child(2) { background: linear-gradient(135deg, #8A1A1A, #C43B2E); }
+  .stat-card:nth-child(3) { background: linear-gradient(135deg, #1A6B3A, #2EAA60); }
+  .stat-card:nth-child(4) { background: linear-gradient(135deg, #6B3A1A, #C47A2E); }
+
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.7);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    color: #FFFFFF;
+    line-height: 1;
+  }
+
+  .stat-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+
+  .empty-state { text-align: center; padding: 60px 24px; color: #555; }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-family: 'Playfair Display', serif; font-size: 20px; color: #888; margin-bottom: 8px; }
+  .empty-sub { font-size: 14px; line-height: 1.6; }
+
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 16px;
+    background: #222;
+    color: #EEE;
+    border: 1px solid #333;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    max-width: 300px;
+  }
+
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  .editable-price {
+    border: 1px solid transparent;
+    background: transparent;
+    width: 80px;
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--amber-light);
+    padding: 4px 6px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .editable-price:focus { border-color: var(--amber); background: #222; }
+
+  @media (max-width: 600px) {
+    header { padding: 14px 16px; }
+    main { padding: 20px 12px; }
+    .card { padding: 16px; }
+    .form-row { flex-direction: column; }
+    .items-table th:nth-child(3),
+    .items-table td:nth-child(3) { display: none; }
+    .tab { padding: 10px 12px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Prix<span>Alert</span></div>
+  <div class="header-info">
+    <div id="headerDate"></div>
+    <div>Boulangerie — Suivi fournisseurs</div>
+  </div>
+</header>
+
+<div id="alertBanner" class="hidden">
+  <span>🔔</span>
+  <span id="alertBannerText"></span>
+</div>
+
+<main>
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Factures analysées</div>
+      <div class="stat-value" id="statFactures">0</div>
+      <div class="stat-sub">depuis le début</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Variations de prix</div>
+      <div class="stat-value" id="statAlertes">0</div>
+      <div class="stat-sub">variations détectées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Produits suivis</div>
+      <div class="stat-value" id="statProduits">0</div>
+      <div class="stat-sub">références uniques</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Fournisseurs</div>
+      <div class="stat-value">2</div>
+      <div class="stat-sub">actifs</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('upload')">📸 Nouvelle facture</button>
+    <button class="tab" onclick="switchTab('history')">📋 Historique</button>
+    <button class="tab" onclick="switchTab('settings')">⚙️ Paramètres</button>
+  </div>
+
+  <!-- UPLOAD SECTION -->
+  <div id="tab-upload" class="section active">
+    <div class="card">
+      <div class="card-title">Analyser une facture</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fournisseur <span style="color:#555;font-size:10px;">(détecté automatiquement)</span></label>
+          <select id="supplierSelect">
+            <option value="">Détection automatique…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date de la facture</label>
+          <input type="date" id="invoiceDate">
+        </div>
+      </div>
+
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileChange(this)">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text" id="uploadText">Appuyer pour prendre une photo</div>
+        <div class="upload-sub">JPG, PNG, HEIC — depuis ton téléphone ou ordi</div>
+      </div>
+
+      <!-- PHOTOS AJOUTÉES -->
+      <div id="photosAdded" style="display:none; margin-top:16px;">
+        <div style="font-size:12px; text-transform:uppercase; letter-spacing:0.8px; color:#555; font-family:'DM Mono',monospace; margin-bottom:10px;">Pages ajoutées</div>
+        <div id="photosList" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- BOUTONS MULTI-PAGES -->
+      <div id="multiPageButtons" style="display:none; margin-top:16px; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="addAnotherPage()" style="flex:1;">➕ Ajouter une page</button>
+        <button class="btn btn-primary" onclick="finishAndAnalyze()" style="flex:1;">✅ Terminer & Analyser</button>
+      </div>
+
+      <div id="imagePreview">
+        <img id="previewImg" src="" alt="Aperçu facture">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px;">
+      <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeInvoice()" disabled>
+        🔍 Analyser la facture
+      </button>
+
+    </div>
+
+    <!-- LOADING -->
+    <div id="loadingState">
+      <div class="spinner"></div>
+      <p style="color:#888; font-size:14px;">L'IA lit ta facture et extrait les prix…</p>
+    </div>
+
+    <!-- EXTRACTED ITEMS -->
+    <div id="extractedItems">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+          <div class="card-title" style="margin-bottom:0" id="extractedTitle">Articles extraits</div>
+          <div style="display:flex; gap:10px;" id="extractedButtons">
+            <button class="btn btn-outline" onclick="editExtracted()">✏️ Corriger</button>
+            <button class="btn btn-primary" onclick="saveInvoice()">💾 Enregistrer & Comparer</button>
+          </div>
+        </div>
+        <div id="extractionWarning" style="display:none; background:#2D1F00; border:1px solid #5A3E00; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#F0C060;">
+          ⚠️ Certains prix n'ont pas pu être lus. Vérifie et corrige si nécessaire avant d'enregistrer.
+        </div>
+        <div id="newProductsWarning" style="display:none; background:#1A2D3D; border:1px solid #2A4A6A; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#6AB0D4;">
+          🆕 <span id="newProductsText"></span> — Vérifie que les prix sont corrects avant d'enregistrer.
+        </div>
+        <table class="items-table" id="itemsTable">
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Prix unitaire</th>
+              <th>Unité</th>
+              <th>Évolution</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SECTION -->
+  <div id="tab-history" class="section">
+    <div class="history-header">
+      <div class="card-title" style="font-size:20px">Historique des factures</div>
+      <select id="filterSupplier" onchange="renderHistory()" style="padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:13px; background:#222; color:var(--text); outline:none;">
+        <option value="">Tous les fournisseurs</option>
+      </select>
+    </div>
+    <div id="historyContainer"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" class="section">
+    <div class="card">
+      <div class="card-title">Noms des fournisseurs</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fournisseur 1</label>
+          <input type="text" id="sup1Name" placeholder="Ex: Grands Moulins de Paris">
+        </div>
+        <div class="form-group">
+          <label>Fournisseur 2</label>
+          <input type="text" id="sup2Name" placeholder="Ex: Laiterie du Val">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSupplierNames()">💾 Enregistrer les noms</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Alertes variations de prix</div>
+      <div class="form-group" style="max-width:400px; margin-bottom:20px;">
+        <label>Ton adresse email</label>
+        <input type="email" id="alertEmail" placeholder="contact@maboulangerie.fr">
+      </div>
+      <div class="form-row" style="align-items:center; margin-bottom:20px;">
+        <div class="form-group" style="flex:0 0 auto;">
+          <label>Seuil d'alerte</label>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="text" id="alertThreshold" value="0" style="width:70px; text-align:center;">
+            <span style="font-size:13px; color:#8B7355;">% de hausse minimum</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:#8B7355; margin-bottom:16px; line-height:1.6;">
+        📧 Un email récapitulatif sera simulé à chaque nouvelle facture si un prix augmente.<br>
+        <em>(Dans cette démo, l'envoi est simulé — intégration EmailJS ou backend possible.)</em>
+      </p>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Sauvegarder</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--red-alert)">Zone de réinitialisation</div>
+      <p style="font-size:13px; color:#8B7355; margin-bottom:16px;">Effacer toutes les données de l'application (factures, historique, paramètres).</p>
+      <button class="btn" style="background:var(--red-light); color:var(--red-alert); border:1.5px solid var(--red-alert);" onclick="resetAll()">🗑️ Tout supprimer</button>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<!-- MODAL NOUVEAU FOURNISSEUR -->
+<div id="supplierModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#1C1C1C; border:1px solid #333; border-radius:16px; padding:28px; max-width:380px; width:100%;">
+    <div style="font-family:'Playfair Display',serif; font-size:20px; color:var(--text); margin-bottom:12px;">🆕 Nouveau fournisseur</div>
+    <p style="color:#888; font-size:14px; margin-bottom:20px;">L'IA a détecté ce fournisseur sur la facture. Confirme ou corrige le nom :</p>
+    <input type="text" id="supplierNameInput" style="width:100%; padding:12px 14px; border:1.5px solid var(--amber); border-radius:8px; font-size:16px; background:#222; color:var(--text); outline:none; margin-bottom:20px;">
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="cancelNewSupplier()">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmNewSupplier()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE & STORAGE
+// ============================================================
+let state = {
+  invoices: [],
+  settings: {
+    email: '',
+    threshold: 0,
+    sup1Name: 'Fournisseur 1',
+    sup2Name: 'Fournisseur 2'
+  }
+};
+
+let currentExtracted = null;
+let currentImageBase64 = null;
+let currentAllPages = [];
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('prixalert_state');
+    if (saved) state = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('prixalert_state', JSON.stringify(state));
+}
+
+
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  loadState();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('invoiceDate').value = today;
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+  document.getElementById('alertEmail').value = state.settings.email || '';
+  document.getElementById('alertThreshold').value = state.settings.threshold ?? 0;
+  document.getElementById('sup1Name').value = state.settings.sup1Name || '';
+  document.getElementById('sup2Name').value = state.settings.sup2Name || '';
+  updateStats();
+  renderHistory();
+  updateSupplierOptions();
+  updateSupplierSelects();
+}
+
+function updateSupplierOptions() {
+  const s1 = state.settings.sup1Name || 'Fournisseur 1';
+  const s2 = state.settings.sup2Name || 'Fournisseur 2';
+  document.querySelectorAll('[data-sup1]').forEach(el => el.textContent = s1);
+  document.querySelectorAll('[data-sup2]').forEach(el => el.textContent = s2);
+  // update select options
+  document.querySelectorAll('#supplierSelect option, #filterSupplier option').forEach(opt => {
+    if (opt.value === 'fournisseur1') opt.textContent = s1;
+    if (opt.value === 'fournisseur2') opt.textContent = s2;
+  });
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ============================================================
+// FILE HANDLING
+// ============================================================
+// Tableau des pages de la facture courante
+let currentPages = []; // [{base64, preview}]
+
+function handleFileChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const base64 = ev.target.result.split(',')[1];
+    const preview = ev.target.result;
+
+    // Ajouter la page
+    currentPages.push({ base64, preview });
+    input.value = ''; // reset pour permettre re-upload même fichier
+
+    // Afficher les miniatures
+    renderPageThumbs();
+
+    // Afficher les boutons multi-pages
+    document.getElementById('multiPageButtons').style.display = 'flex';
+    document.getElementById('photosAdded').style.display = 'block';
+    document.getElementById('uploadText').textContent = 'Ajouter une autre page';
+
+    // Masquer l'ancien preview unique
+    document.getElementById('imagePreview').style.display = 'none';
+
+    checkAnalyzeReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPageThumbs() {
+  const list = document.getElementById('photosList');
+  list.innerHTML = currentPages.map((p, i) => `
+    <div style="position:relative; display:inline-block;">
+      <img src="${p.preview}" style="height:70px; border-radius:6px; border:1px solid var(--border);">
+      <span style="position:absolute; top:-6px; left:-6px; background:var(--amber); color:#111; border-radius:50%; width:20px; height:20px; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">${i+1}</span>
+      <button onclick="removePage(${i})" style="position:absolute; top:-6px; right:-6px; background:#E05555; border:none; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">×</button>
+    </div>
+  `).join('');
+}
+
+function removePage(i) {
+  currentPages.splice(i, 1);
+  renderPageThumbs();
+  if (currentPages.length === 0) {
+    document.getElementById('multiPageButtons').style.display = 'none';
+    document.getElementById('photosAdded').style.display = 'none';
+    document.getElementById('uploadText').textContent = 'Appuyer pour prendre une photo';
+  }
+  checkAnalyzeReady();
+}
+
+function addAnotherPage() {
+  document.getElementById('fileInput').click();
+}
+
+function finishAndAnalyze() {
+  if (currentPages.length === 0) return;
+  // Utiliser la première page pour compatibilité, mais passer toutes les pages
+  currentImageBase64 = currentPages[0].base64;
+  currentAllPages = currentPages.map(p => p.base64);
+  analyzeInvoice();
+}
+
+document.getElementById('supplierSelect').addEventListener('change', checkAnalyzeReady);
+
+function checkAnalyzeReady() {
+  // Rien à faire, le bouton "Terminer & Analyser" gère ça
+}
+
+// ============================================================
+// ANALYZE VIA CLAUDE API
+// ============================================================
+async function analyzeInvoice() {
+  const date = document.getElementById('invoiceDate').value;
+  if (!currentImageBase64 && currentPages.length === 0) return;
+
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('extractedItems').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+
+  try {
+    const supplier = document.getElementById('supplierSelect').value;
+    const knownSuppliers = state.suppliers || [];
+    const knownNames = knownSuppliers.map(s => s.name).join(', ') || 'aucun encore';
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: [
+            ...((currentAllPages.length > 0 ? currentAllPages : [currentImageBase64]).map(b64 => ({
+              type: "image",
+              source: { type: "base64", media_type: "image/jpeg", data: b64 }
+            }))),
+            {
+              type: "text",
+              text: `Tu es un assistant spécialisé dans la lecture de factures de boulangerie/fournisseurs alimentaires.
+Analyse cette image de facture et extrait TOUS les articles avec leur prix unitaire.
+Détecte aussi le nom du fournisseur/société émettrice de la facture.
+Fournisseurs déjà connus : ${knownNames}
+
+Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans backticks markdown. Format exact:
+{
+  "supplier_name": "Nom de la société sur la facture",
+  "items": [
+    {"name": "Beurre 82%", "price": 5.30, "unit": "kg"},
+    {"name": "Farine T55", "price": 0.45, "unit": "kg"}
+  ],
+  "warning": false
+}
+
+- "supplier_name": nom exact de la société/fournisseur tel qu'il apparaît sur la facture
+- "name": nom du produit tel qu'il apparaît sur la facture
+- "price": prix numérique (nombre décimal), prix UNITAIRE HT de préférence
+- "unit": unité (kg, L, pièce, carton, sac, etc.)
+- "warning": true si certains prix sont illisibles ou douteux
+
+Si l'image n'est pas une facture lisible, retourne: {"supplier_name": "", "items": [], "warning": true}`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    // Gérer la détection automatique du fournisseur
+    const detectedName = parsed.supplier_name || '';
+    let detectedId = supplier; // si déjà sélectionné manuellement
+
+    if (!detectedId && detectedName) {
+      // Chercher si ce fournisseur existe déjà
+      const existing = (state.suppliers || []).find(s =>
+        s.name.toLowerCase().includes(detectedName.toLowerCase()) ||
+        detectedName.toLowerCase().includes(s.name.toLowerCase())
+      );
+      if (existing) {
+        detectedId = existing.id;
+        document.getElementById('supplierSelect').value = detectedId;
+      } else {
+        // Nouveau fournisseur — demander confirmation
+        pendingSupplierName = detectedName;
+        pendingExtracted = { items: parsed.items, warning: parsed.warning, date };
+        document.getElementById('supplierNameInput').value = detectedName;
+        document.getElementById('supplierModal').style.display = 'flex';
+        document.getElementById('loadingState').style.display = 'none';
+        return;
+      }
+    }
+
+    if (!detectedId) detectedId = 'inconnu_' + Date.now();
+    currentExtracted = { supplier: detectedId, date, items: parsed.items, warning: parsed.warning };
+    displayExtracted(currentExtracted);
+
+  } catch(err) {
+    console.error(err);
+    showToast('❌ Erreur lors de l\'analyse. Vérifiez votre connexion.');
+  } finally {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+}
+
+// ============================================================
+// DISPLAY EXTRACTED
+// ============================================================
+function displayExtracted(data) {
+  document.getElementById('extractedItems').style.display = 'block';
+  document.getElementById('extractionWarning').style.display = data.warning ? 'block' : 'none';
+
+  const tbody = document.getElementById('itemsBody');
+  tbody.innerHTML = '';
+
+  data.items.forEach((item, i) => {
+    const prev = findPreviousPrice(data.supplier, item.name);
+    const delta = prev !== null ? item.price - prev : null;
+    const deltaPct = prev !== null && prev > 0 ? ((delta / prev) * 100).toFixed(1) : null;
+
+    let deltaHtml = '';
+    if (prev === null) {
+      deltaHtml = '<span class="new-badge">NOUVEAU</span>';
+    } else if (Math.abs(delta) < 0.001) {
+      deltaHtml = '<span class="delta-same">= stable</span>';
+    } else if (delta > 0) {
+      deltaHtml = `<span class="delta-up">▲ +${delta.toFixed(2)}€ (+${deltaPct}%)</span>`;
+    } else {
+      deltaHtml = `<span class="delta-down">▼ ${delta.toFixed(2)}€ (${deltaPct}%)</span>`;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="item-name">${escHtml(item.name)}</td>
+      <td class="price-cell">
+        <input class="editable-price" type="number" step="0.01" value="${item.price.toFixed(2)}" 
+          data-index="${i}" onchange="updateItemPrice(${i}, this.value)">€
+      </td>
+      <td class="unit-cell">${escHtml(item.unit || '—')}</td>
+      <td>${deltaHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Vérifier si auto-save possible
+  checkAutoSave(data);
+}
+
+function updateItemPrice(index, value) {
+  if (currentExtracted) {
+    currentExtracted.items[index].price = parseFloat(value) || 0;
+    displayExtracted(currentExtracted);
+  }
+}
+
+function editExtracted() {
+  showToast('✏️ Tu peux modifier les prix directement dans le tableau.');
+}
+
+function checkAutoSave(data) {
+  // Vérifie s'il y a des factures précédentes pour ce fournisseur
+  const prevInvoices = state.invoices.filter(inv => inv.supplier === data.supplier);
+  if (prevInvoices.length === 0) {
+    // Première facture — demander validation
+    document.getElementById('newProductsWarning').style.display = 'block';
+    document.getElementById('newProductsText').textContent = 'Première facture pour ce fournisseur — tous les produits sont nouveaux';
+    document.getElementById('extractedButtons').style.display = 'flex';
+    return;
+  }
+
+  // Factures suivantes — chercher nouveaux produits et variations
+  const newProducts = data.items.filter(item => findPreviousPrice(data.supplier, item.name) === null);
+  const variations = data.items.filter(item => {
+    const prev = findPreviousPrice(data.supplier, item.name);
+    return prev !== null && Math.abs(item.price - prev) > 0.001;
+  });
+
+  if (newProducts.length > 0 || data.warning) {
+    // Il y a des nouveaux produits ou avertissement — demander validation
+    document.getElementById('newProductsWarning').style.display = 'block';
+    const msgs = [];
+    if (newProducts.length > 0) msgs.push(`${newProducts.length} nouveau(x) produit(s) détecté(s) : ${newProducts.map(p => p.name).join(', ')}`);
+    if (data.warning) msgs.push('certains prix sont peut-être mal lus');
+    document.getElementById('newProductsText').textContent = msgs.join(' — ');
+    document.getElementById('extractedButtons').style.display = 'flex';
+  } else if (variations.length > 0) {
+    // Variations de prix — alerter mais enregistrer automatiquement
+    document.getElementById('newProductsWarning').style.display = 'block';
+    document.getElementById('newProductsText').textContent = `${variations.length} variation(s) de prix détectée(s) — enregistrement automatique dans 3 secondes...`;
+    document.getElementById('extractedButtons').style.display = 'flex';
+    setTimeout(() => saveInvoice(), 3000);
+  } else {
+    // Aucun changement — enregistrement automatique
+    document.getElementById('newProductsWarning').style.display = 'block';
+    document.getElementById('newProductsText').textContent = 'Aucun changement détecté — enregistrement automatique...';
+    document.getElementById('extractedButtons').style.display = 'none';
+    setTimeout(() => saveInvoice(), 2000);
+  }
+}
+
+// ============================================================
+// FIND PREVIOUS PRICE
+// ============================================================
+function findPreviousPrice(supplier, itemName) {
+  const sameSupplier = state.invoices
+    .filter(inv => inv.supplier === supplier)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  for (const inv of sameSupplier) {
+    const match = inv.items.find(it => normalizeItem(it.name) === normalizeItem(itemName));
+    if (match) return match.price;
+  }
+  return null;
+}
+
+function normalizeItem(name) {
+  return name.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// ============================================================
+// SAVE INVOICE
+// ============================================================
+function saveInvoice() {
+  if (!currentExtracted || currentExtracted.items.length === 0) {
+    showToast('⚠️ Aucun article à enregistrer.');
+    return;
+  }
+
+  // Detect alerts (hausses ET baisses)
+  const alerts = [];
+  const itemsDown = [];
+  const threshold = state.settings.threshold || 0;
+
+  currentExtracted.items.forEach(item => {
+    const prev = findPreviousPrice(currentExtracted.supplier, item.name);
+    if (prev !== null) {
+      const delta = item.price - prev;
+      const deltaPct = prev > 0 ? (delta / prev) * 100 : 0;
+      if (delta > 0 && deltaPct >= threshold) {
+        alerts.push({ name: item.name, prev, current: item.price, delta, deltaPct });
+      } else if (delta < 0 && Math.abs(deltaPct) >= threshold) {
+        itemsDown.push({ name: item.name, prev, current: item.price, delta, deltaPct });
+      }
+    }
+  });
+
+  // Save
+  const invoice = {
+    id: Date.now(),
+    supplier: currentExtracted.supplier,
+    date: currentExtracted.date,
+    items: currentExtracted.items,
+    alerts: alerts,
+    itemsDown: itemsDown,
+    savedAt: new Date().toISOString()
+  };
+  state.invoices.push(invoice);
+  saveState();
+  updateStats();
+
+  // Show alerts
+  if (alerts.length > 0 || itemsDown.length > 0) {
+    showAlertBanner(alerts, itemsDown, currentExtracted.supplier);
+    simulateEmailAlert(alerts, itemsDown, currentExtracted.supplier, currentExtracted.date);
+  }
+
+  // Reset
+  currentExtracted = null;
+  currentImageBase64 = null;
+  currentAllPages = [];
+  currentPages = [];
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('extractedItems').style.display = 'none';
+  document.getElementById('previewImg').src = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('supplierSelect').value = '';
+  document.getElementById('multiPageButtons').style.display = 'none';
+  document.getElementById('photosAdded').style.display = 'none';
+  document.getElementById('photosList').innerHTML = '';
+  document.getElementById('uploadText').textContent = 'Appuyer pour prendre une photo';
+
+  const parts = [];
+  if (alerts.length > 0) parts.push(`⬆️ ${alerts.length} hausse(s)`);
+  if (itemsDown.length > 0) parts.push(`⬇️ ${itemsDown.length} baisse(s)`);
+  showToast(parts.length > 0
+    ? `✅ Facture enregistrée — ${parts.join(', ')} !`
+    : '✅ Facture enregistrée — aucune variation détectée.');
+
+  // Switch to history
+  setTimeout(() => {
+    document.querySelector('.tab:nth-child(2)').click();
+  }, 1200);
+}
+
+// ============================================================
+// ALERT BANNER
+// ============================================================
+function showAlertBanner(alerts, itemsDown, supplier) {
+  const banner = document.getElementById('alertBanner');
+  const text = document.getElementById('alertBannerText');
+  const parts = [];
+  if (alerts.length > 0) parts.push('⬆️ ' + alerts.map(a => `${a.name} (+${a.deltaPct.toFixed(1)}%)`).join(', '));
+  if (itemsDown.length > 0) parts.push('⬇️ ' + itemsDown.map(a => `${a.name} (${a.deltaPct.toFixed(1)}%)`).join(', '));
+  text.textContent = `Variations chez ${getSupplierName(supplier)} — ${parts.join(' | ')}`;
+  banner.classList.remove('hidden');
+  setTimeout(() => banner.classList.add('hidden'), 12000);
+}
+
+// ============================================================
+// SIMULATE EMAIL
+// ============================================================
+function simulateEmailAlert(alerts, itemsDown, supplier, date) {
+  const email = state.settings.email;
+  if (!email) return;
+  console.log(`[PrixAlert] Email simulé vers ${email} :`);
+  console.log(`Objet: 📊 Variations de prix — ${getSupplierName(supplier)}`);
+  alerts.forEach(a => console.log(`  ⬆️ ${a.name}: ${a.prev.toFixed(2)}€ → ${a.current.toFixed(2)}€ (+${a.deltaPct.toFixed(1)}%)`));
+  itemsDown.forEach(a => console.log(`  ⬇️ ${a.name}: ${a.prev.toFixed(2)}€ → ${a.current.toFixed(2)}€ (${a.deltaPct.toFixed(1)}%)`));
+  showToast(`📧 Email de variations simulé vers ${email}`);
+}
+
+// ============================================================
+// STATS
+// ============================================================
+function updateStats() {
+  const totalAlerts = state.invoices.reduce((sum, inv) => sum + (inv.alerts?.length || 0), 0);
+  const totalDown = state.invoices.reduce((sum, inv) => sum + (inv.itemsDown?.length || 0), 0);
+  const allItems = new Set();
+  state.invoices.forEach(inv => inv.items.forEach(it => allItems.add(normalizeItem(it.name))));
+
+  document.getElementById('statFactures').textContent = state.invoices.length;
+  document.getElementById('statAlertes').textContent = totalAlerts + totalDown;
+  document.getElementById('statProduits').textContent = allItems.size;
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function renderHistory() {
+  const filter = document.getElementById('filterSupplier').value;
+  const container = document.getElementById('historyContainer');
+
+  let invoices = [...state.invoices].sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (filter) invoices = invoices.filter(inv => inv.supplier === filter);
+
+  if (invoices.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🗂️</div>
+        <div class="empty-title">Aucune facture enregistrée</div>
+        <div class="empty-sub">Analyse ta première facture via l'onglet<br><strong>Nouvelle facture</strong> pour commencer le suivi.</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = invoices.map((inv, idx) => {
+    const supClass = inv.supplier === 'fournisseur1' ? 'supplier-1' : 'supplier-2';
+    const dateStr = new Date(inv.date + 'T12:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+    const alertCount = inv.alerts?.length || 0;
+    const downCount = inv.itemsDown?.length || 0;
+    const varCount = alertCount + downCount;
+
+    const itemsRows = inv.items.map(item => {
+      const alertItem = inv.alerts?.find(a => normalizeItem(a.name) === normalizeItem(item.name));
+      const downItem = inv.itemsDown?.find(a => normalizeItem(a.name) === normalizeItem(item.name));
+      const rowStyle = alertItem ? 'background:#FFF5F5;' : downItem ? 'background:#F0FFF4;' : '';
+      const deltaHtml = alertItem
+        ? `<span class="delta-up">▲ +${alertItem.delta.toFixed(2)}€ (+${alertItem.deltaPct.toFixed(1)}%)</span>`
+        : downItem
+        ? `<span class="delta-down">▼ ${downItem.delta.toFixed(2)}€ (${downItem.deltaPct.toFixed(1)}%)</span>`
+        : '';
+      return `<tr style="${rowStyle}">
+        <td class="item-name">${escHtml(item.name)}</td>
+        <td class="price-cell">${item.price.toFixed(2)}€</td>
+        <td class="unit-cell">${escHtml(item.unit || '—')}</td>
+        <td>${deltaHtml}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div class="history-entry">
+        <div class="history-entry-header" onclick="toggleHistory('hist-${inv.id}')">
+          <div class="history-meta">
+            <span class="history-date">📄 ${dateStr}</span>
+            <span class="supplier-badge ${supClass}">${getSupplierName(inv.supplier)}</span>
+            ${alertCount > 0 ? `<span class="alert-count">⬆️ ${alertCount} hausse${alertCount > 1 ? 's' : ''}</span>` : ''}
+            ${downCount > 0 ? `<span class="alert-count" style="background:var(--green)">⬇️ ${downCount} baisse${downCount > 1 ? 's' : ''}</span>` : ''}
+          </div>
+          <span style="font-size:12px; color:#8B7355; font-family:'DM Mono',monospace;">${inv.items.length} articles ▾</span>
+        </div>
+        <div class="history-body" id="hist-${inv.id}">
+          <table class="items-table">
+            <thead><tr><th>Produit</th><th>Prix</th><th>Unité</th><th>Variation</th></tr></thead>
+            <tbody>${itemsRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleHistory(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function saveSettings() {
+  state.settings.email = document.getElementById('alertEmail').value;
+  state.settings.threshold = parseFloat(document.getElementById('alertThreshold').value) || 0;
+  saveState();
+  showToast('✅ Paramètres sauvegardés.');
+}
+
+function saveSupplierNames() {
+  state.settings.sup1Name = document.getElementById('sup1Name').value || 'Fournisseur 1';
+  state.settings.sup2Name = document.getElementById('sup2Name').value || 'Fournisseur 2';
+  saveState();
+  updateSupplierOptions();
+  updateSupplierSelects();
+  showToast('✅ Noms mis à jour.');
+}
+
+function resetAll() {
+  if (confirm('Supprimer TOUTES les données ? Cette action est irréversible.')) {
+    localStorage.removeItem('prixalert_state');
+    state = { invoices: [], settings: { email: '', threshold: 0, sup1Name: 'Fournisseur 1', sup2Name: 'Fournisseur 2' } };
+    updateStats();
+    renderHistory();
+    showToast('🗑️ Données supprimées.');
+  }
+}
+
+
+
+
+
+// ============================================================
+// SUPPLIERS MANAGEMENT
+// ============================================================
+let pendingSupplierName = '';
+let pendingExtracted = null;
+
+function confirmNewSupplier() {
+  const name = document.getElementById('supplierNameInput').value.trim();
+  if (!name) return;
+  const id = 'supplier_' + Date.now();
+  if (!state.suppliers) state.suppliers = [];
+  state.suppliers.push({ id, name });
+  saveState();
+  updateSupplierSelects();
+  document.getElementById('supplierModal').style.display = 'none';
+  document.getElementById('supplierSelect').value = id;
+  if (pendingExtracted) {
+    currentExtracted = { supplier: id, date: pendingExtracted.date, items: pendingExtracted.items, warning: pendingExtracted.warning };
+    displayExtracted(currentExtracted);
+    pendingExtracted = null;
+  }
+  showToast(`✅ Fournisseur "${name}" créé !`);
+}
+
+function cancelNewSupplier() {
+  document.getElementById('supplierModal').style.display = 'none';
+  pendingExtracted = null;
+  showToast('Analyse annulée.');
+}
+
+function updateSupplierSelects() {
+  const suppliers = state.suppliers || [];
+  const selects = ['supplierSelect', 'filterSupplier'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    const firstOpt = id === 'supplierSelect' ? '<option value="">Détection automatique…</option>' : '<option value="">Tous les fournisseurs</option>';
+    sel.innerHTML = firstOpt + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  });
+}
+
+function getSupplierName(id) {
+  const suppliers = state.suppliers || [];
+  const found = suppliers.find(s => s.id === id);
+  if (found) return found.name;
+  if (id === 'fournisseur1') return state.settings.sup1Name || 'Fournisseur 1';
+  if (id === 'fournisseur2') return state.settings.sup2Name || 'Fournisseur 2';
+  return id;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      currentImageBase64 = ev.target.result.split(',')[1];
+      document.getElementById('previewImg').src = ev.target.result;
+      document.getElementById('imagePreview').style.display = 'block';
+      checkAnalyzeReady();
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body>
+</html>
